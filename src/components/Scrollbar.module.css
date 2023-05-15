@@ -1,0 +1,25 @@
+
+.scrollbar_h {
+    width: 100%;
+    height: 15px;
+    border: solid 1px #756e8e;
+    border-radius: 4px;
+    background-color: #fff;
+    position: relative;
+  }
+  
+  .scrollbar_h .track {
+    left: 0;
+    cursor: pointer;
+    position: absolute;
+    right: 0;
+    height: 100%;
+    width: 100%;
+  }
+  
+  .scrollbar_h .thumb {
+    position: absolute;
+    background: #756e8e;
+    height: 100%;
+    width: 100px;
+  }
