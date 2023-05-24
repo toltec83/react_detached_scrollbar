@@ -148,8 +148,8 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
 
   const handleContentMouseup = useCallback(
     (e: any) => {
-      e.preventDefault();
-      e.stopPropagation();
+      /* e.preventDefault();
+      e.stopPropagation(); */
       if (isContentDragging) {
         setIsContentDragging(false);
       }
@@ -157,15 +157,14 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
     [isContentDragging]
   );
 
-  const handleContentMousemove = useCallback(
+  const handleContentMove = useCallback(
     (e: any) => {
-      e.preventDefault();
-      e.stopPropagation();
+      /* e.preventDefault();
+      e.stopPropagation(); */
       if (isContentDragging) {
-        const deltaX = e.clientX - prevX;
+        const deltaX = (e.clientX ?? e.touches[0].clientX) - prevX;
         props.contentRef.current.scrollLeft -= deltaX;
-
-        setPrevX(e.clientX);
+        setPrevX(e.clientX ?? e.touches[0].clientX);
       }
     },
     [isContentDragging, prevX]
@@ -175,7 +174,7 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
 
   const handleContentBegin = useCallback((e: any) => {
     setIsContentDragging(true);
-    setPrevX(e.touches ? e.touches[0].clientX : e.clientX);
+    setPrevX(e.clientX ?? e.touches[0].clientX);
   }, []);
 
   const handleContentEnd = useCallback(
@@ -187,31 +186,13 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
     [isContentDragging]
   );
 
-  const handleContentTouchmove = useCallback(
-    (e: any) => {
-      if (isContentDragging) {
-        const deltaX = e.touches[0].clientX - prevX;
-        props.contentRef.current.scrollLeft -= deltaX;
-
-        setPrevX(e.touches[0].clientX);
-      }
-    },
-    [isContentDragging, prevX]
-  );
-
-  const handleThumbMousedown = useCallback((e: any) => {
-    setScrollStartPosition(e.clientX);
+  const handleThumbBegin = useCallback((e: any) => {
+    setScrollStartPosition(e.clientX ?? e.touches[0].clientX);
     setInitialScrollLeft(props.contentRef.current!.scrollLeft);
     setIsDragging(true);
   }, []);
 
-  const handleThumbTouchdown = useCallback((e: any) => {
-    setScrollStartPosition(e.touches[0].clientX);
-    setInitialScrollLeft(props.contentRef.current!.scrollLeft);
-    setIsDragging(true);
-  }, []);
-
-  const handleThumbMouseup = useCallback(
+  const handleThumbEnd = useCallback(
     (e: any) => {
       if (isDragging) {
         setIsDragging(false);
@@ -220,7 +201,7 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
     [isDragging]
   );
 
-  const handleThumbMousemove = useCallback(
+  const handleThumbMove = useCallback(
     (e: any) => {
       if (isDragging) {
         const {
@@ -228,26 +209,7 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
           offsetWidth: contentOffsetWidth,
         } = props.contentRef.current;
         const deltaX =
-          (e.clientX - scrollStartPosition) * (contentOffsetWidth / thumbWidth);
-        const newScrollLeft = Math.min(
-          initialScrollLeft + deltaX,
-          contentScrollWidth - contentOffsetWidth
-        );
-        props.contentRef.current.scrollLeft = newScrollLeft;
-      }
-    },
-    [isDragging, scrollStartPosition, thumbWidth]
-  );
-
-  const handleThumbTouchmove = useCallback(
-    (e: any) => {
-      if (isDragging) {
-        const {
-          scrollWidth: contentScrollWidth,
-          offsetWidth: contentOffsetWidth,
-        } = props.contentRef.current;
-        const deltaX =
-          (e.touches[0].clientX - scrollStartPosition) *
+          ((e.clientX ?? e.touches[0].clientX) - scrollStartPosition) *
           (contentOffsetWidth / thumbWidth);
         const newScrollLeft = Math.min(
           initialScrollLeft + deltaX,
@@ -259,50 +221,44 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
     [isDragging, scrollStartPosition, thumbWidth]
   );
 
-  // Listen for mouse events to handle scrolling by dragging the thumb
+  const events = [
+    { event: "mousemove", target: document, method: handleThumbMove },
+    { event: "touchmove", target: document, method: handleThumbMove },
+    { event: "mouseup", target: document, method: handleThumbEnd },
+    { event: "mouseleave", target: document, method: handleThumbEnd },
+    { event: "touchend", target: document, method: handleThumbEnd },
+    { event: "mousemove", target: document, method: handleContentMove },
+    { event: "mouseup", target: document, method: handleContentEnd },
+    { event: "touchmove", target: document, method: handleContentMove },
+    { event: "touchend", target: document, method: handleContentEnd },
+  ];
+
   useEffect(() => {
-    document.addEventListener("mousemove", handleThumbMousemove);
-    document.addEventListener("touchmove", handleThumbTouchmove);
-    document.addEventListener("mouseup", handleThumbMouseup);
-    document.addEventListener("mouseleave", handleThumbMouseup);
-    document.addEventListener("touchend", handleThumbMouseup);
-
-    document.addEventListener("mousemove", handleContentMousemove);
+    for (let event of events) {
+      event.target.addEventListener(event.event, event.method);
+    }
     props.contentRef.current.addEventListener("mousedown", handleContentBegin);
-    document.addEventListener("mouseup", handleContentEnd);
-
-    document.addEventListener("touchmove", handleContentTouchmove);
     props.contentRef.current.addEventListener("touchstart", handleContentBegin);
-    document.addEventListener("touchend", handleContentEnd);
 
     return () => {
-      document.removeEventListener("mousemove", handleThumbMousemove);
-      document.removeEventListener("touchmove", handleThumbTouchmove);
-      document.removeEventListener("mouseup", handleThumbMouseup);
-      document.removeEventListener("mouseleave", handleThumbMouseup);
-      document.removeEventListener("touchend", handleThumbMouseup);
-      document.removeEventListener("mousemove", handleContentMousemove);
-      document.removeEventListener("mouseup", handleContentEnd);
-      document.removeEventListener("touchmove", handleContentTouchmove);
-      document.removeEventListener("touchend", handleContentEnd);
-      props.contentRef.current.removeEventListener(
-        "touchstart",
+      for (let event of events) {
+        event.target.removeEventListener(event.event, event.method);
+      }
+      props.contentRef.current.addEventListener(
+        "mousedown",
         handleContentBegin
       );
-      props.contentRef.current.removeEventListener(
-        "mousedown",
+      props.contentRef.current.addEventListener(
+        "touchstart",
         handleContentBegin
       );
     };
   }, [
-    handleThumbMousemove,
-    handleThumbMouseup,
-    handleContentMousedown,
-    handleContentMouseup,
-    handleContentMousemove,
+    ...events.reduce(
+      (methods:Function[], currEvent) => [...methods, currEvent.method],
+      []
+    ),
     handleContentBegin,
-    handleContentEnd,
-    handleContentTouchmove,
   ]);
 
   return (
@@ -319,8 +275,8 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
       <div
         className={styles.thumb}
         ref={scrollThumbRef}
-        onMouseDown={handleThumbMousedown}
-        onTouchStart={handleThumbTouchdown}
+        onMouseDown={handleThumbBegin}
+        onTouchStart={handleThumbBegin}
         style={{
           width: `${thumbWidth}px`,
           cursor: isDragging ? "grabbing" : "grab",
