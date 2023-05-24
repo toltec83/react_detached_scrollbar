@@ -1,11 +1,4 @@
-.controls {
-  display: flex;
-  position: fixed;
-  left: 40px;
-  right: 40px;
-  bottom: 180px;
-  z-index: 10;
-}
+
 
 .scrollbar {
   width: 90%;
@@ -14,6 +7,7 @@
   background-color: #fff;
   position: relative;
   height: 20px;
+  margin: auto;
 }
 
 .track {

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import styles from "./Scrollbar.module.css";
 
 interface ScrollbarOptions {
   direction: string;
-  alwaysVisible?: true;
+  alwaysVisible?: boolean;
   isDraggable?: boolean;
   minThumbWidth?: number;
 }
@@ -13,21 +13,54 @@ interface ScrollbarProps {
   contentRef: any;
 }
 
+interface visibilityState {
+  thumbVisible: boolean;
+  scrollbarVisible: boolean;
+}
+
+const handleVisibility = (state: visibilityState, action: string) => {
+  switch (action) {
+    case "SCROLLBAR_VISIBLE":
+      state.scrollbarVisible = true;
+      state.thumbVisible = true;
+      break;
+    case "SCROLLBAR_HIDDEN":
+      state.scrollbarVisible = false;
+      state.thumbVisible = false;
+      break;
+    case "THUMB_HIDDEN":
+      state.scrollbarVisible = true;
+      state.thumbVisible = false;
+      break;
+  }
+  return state;
+};
+
 const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const scrollThumbRef = useRef<HTMLDivElement>(null);
   const observer = useRef<ResizeObserver | null>(null);
 
-  const {direction, minThumbWidth=20, isDraggable, alwaysVisible} = props.options;
+  const {
+    direction,
+    minThumbWidth = 20,
+    isDraggable = true,
+    alwaysVisible = false,
+  } = props.options;
 
   const [thumbWidth, setThumbWidth] = useState(minThumbWidth);
   const [scrollStartPosition, setScrollStartPosition] = useState(0);
+
+  const [visibility, setVisibility] = useReducer(handleVisibility, {
+    thumbVisible: true,
+    scrollbarVisible: true,
+  });
 
   const [initialScrollLeft, setInitialScrollLeft] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
   const [isContentDragging, setIsContentDragging] = useState(false);
-  const [oldX, setOldX] = useState(0);
+  const [prevX, setPrevX] = useState(0);
 
   const positionThumb = () => {
     if (props.contentRef.current && scrollTrackRef.current) {
@@ -45,7 +78,16 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
       positionThumb();
       const { clientWidth, scrollWidth } = props.contentRef.current;
       const { clientWidth: trackSize } = scrollTrackRef.current;
-      setThumbWidth(Math.max((clientWidth / scrollWidth) * trackSize, minThumbWidth));
+      if (!alwaysVisible && clientWidth >= scrollWidth) {
+        setVisibility("SCROLLBAR_HIDDEN");
+      } else if (alwaysVisible && clientWidth >= scrollWidth) {
+        setVisibility("THUMB_HIDDEN");
+      } else {
+        setVisibility("SCROLLBAR_VISIBLE");
+      }
+      setThumbWidth(
+        Math.max((clientWidth / scrollWidth) * trackSize, minThumbWidth)
+      );
     }
   }
 
@@ -101,7 +143,7 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
 
   const handleContentMousedown = useCallback((e: any) => {
     setIsContentDragging(true);
-    setOldX(e.clientX);
+    setPrevX(e.clientX);
   }, []);
 
   const handleContentMouseup = useCallback(
@@ -120,23 +162,23 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
       e.preventDefault();
       e.stopPropagation();
       if (isContentDragging) {
-        const deltaX = e.clientX - oldX;
+        const deltaX = e.clientX - prevX;
         props.contentRef.current.scrollLeft -= deltaX;
 
-        setOldX(e.clientX);
+        setPrevX(e.clientX);
       }
     },
-    [isContentDragging, oldX]
+    [isContentDragging, prevX]
   );
 
   /******************TIMELINE DRAG MOBILE HANDLERS****************/
 
-  const handleContentTouchstart = useCallback((e: any) => {
+  const handleContentBegin = useCallback((e: any) => {
     setIsContentDragging(true);
-    setOldX(e.touches[0].clientX);
+    setPrevX(e.touches ? e.touches[0].clientX : e.clientX);
   }, []);
 
-  const handleContentTouchend = useCallback(
+  const handleContentEnd = useCallback(
     (e: any) => {
       if (isContentDragging) {
         setIsContentDragging(false);
@@ -148,26 +190,24 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
   const handleContentTouchmove = useCallback(
     (e: any) => {
       if (isContentDragging) {
-        const deltaX = e.touches[0].clientX - oldX;
+        const deltaX = e.touches[0].clientX - prevX;
         props.contentRef.current.scrollLeft -= deltaX;
 
-        setOldX(e.touches[0].clientX);
+        setPrevX(e.touches[0].clientX);
       }
     },
-    [isContentDragging, oldX]
+    [isContentDragging, prevX]
   );
 
   const handleThumbMousedown = useCallback((e: any) => {
     setScrollStartPosition(e.clientX);
-    //if (props.contentRef.current)
-    setInitialScrollLeft(props.contentRef.current?.scrollLeft);
+    setInitialScrollLeft(props.contentRef.current!.scrollLeft);
     setIsDragging(true);
   }, []);
 
   const handleThumbTouchdown = useCallback((e: any) => {
     setScrollStartPosition(e.touches[0].clientX);
-    if (props.contentRef.current)
-      setInitialScrollLeft(props.contentRef.current.scrollLeft);
+    setInitialScrollLeft(props.contentRef.current!.scrollLeft);
     setIsDragging(true);
   }, []);
 
@@ -187,17 +227,13 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
           scrollWidth: contentScrollWidth,
           offsetWidth: contentOffsetWidth,
         } = props.contentRef.current;
-
-        // Subtract the current mouse y position from where you started to get the pixel difference in mouse position. Multiply by ratio of visible content height to thumb height to scale up the difference for content scrolling.
         const deltaX =
           (e.clientX - scrollStartPosition) * (contentOffsetWidth / thumbWidth);
         const newScrollLeft = Math.min(
           initialScrollLeft + deltaX,
           contentScrollWidth - contentOffsetWidth
         );
-
         props.contentRef.current.scrollLeft = newScrollLeft;
-        //console.log(e.clientX);
       }
     },
     [isDragging, scrollStartPosition, thumbWidth]
@@ -232,18 +268,12 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
     document.addEventListener("touchend", handleThumbMouseup);
 
     document.addEventListener("mousemove", handleContentMousemove);
-    props.contentRef.current.addEventListener(
-      "mousedown",
-      handleContentMousedown
-    );
-    document.addEventListener("mouseup", handleContentMouseup);
+    props.contentRef.current.addEventListener("mousedown", handleContentBegin);
+    document.addEventListener("mouseup", handleContentEnd);
 
     document.addEventListener("touchmove", handleContentTouchmove);
-    props.contentRef.current.addEventListener(
-      "touchstart",
-      handleContentTouchstart
-    );
-    document.addEventListener("touchend", handleContentTouchend);
+    props.contentRef.current.addEventListener("touchstart", handleContentBegin);
+    document.addEventListener("touchend", handleContentEnd);
 
     return () => {
       document.removeEventListener("mousemove", handleThumbMousemove);
@@ -252,9 +282,17 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
       document.removeEventListener("mouseleave", handleThumbMouseup);
       document.removeEventListener("touchend", handleThumbMouseup);
       document.removeEventListener("mousemove", handleContentMousemove);
-      document.removeEventListener("mouseup", handleContentMouseup);
+      document.removeEventListener("mouseup", handleContentEnd);
       document.removeEventListener("touchmove", handleContentTouchmove);
-      document.removeEventListener("touchend", handleContentTouchend);
+      document.removeEventListener("touchend", handleContentEnd);
+      props.contentRef.current.removeEventListener(
+        "touchstart",
+        handleContentBegin
+      );
+      props.contentRef.current.removeEventListener(
+        "mousedown",
+        handleContentBegin
+      );
     };
   }, [
     handleThumbMousemove,
@@ -262,31 +300,33 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
     handleContentMousedown,
     handleContentMouseup,
     handleContentMousemove,
-    handleContentTouchstart,
-    handleContentTouchend,
+    handleContentBegin,
+    handleContentEnd,
     handleContentTouchmove,
   ]);
 
   return (
-    <div className={styles.controls}>
-      <div className={styles.scrollbar}>
-        <div
-          className={styles.track}
-          ref={scrollTrackRef}
-          onClick={handleTrackClick}
-          style={{ cursor: isDragging ? "grabbing" : "pointer" }}
-        ></div>
-        <div
-          className={styles.thumb}
-          ref={scrollThumbRef}
-          onMouseDown={handleThumbMousedown}
-          onTouchStart={handleThumbTouchdown}
-          style={{
-            width: `${thumbWidth}px`,
-            cursor: isDragging ? "grabbing" : "grab",
-          }}
-        ></div>
-      </div>
+    <div
+      className={styles.scrollbar}
+      style={{ visibility: visibility.scrollbarVisible ? "visible" : "hidden" }}
+    >
+      <div
+        className={styles.track}
+        ref={scrollTrackRef}
+        onClick={handleTrackClick}
+        style={{ cursor: isDragging ? "grabbing" : "pointer" }}
+      ></div>
+      <div
+        className={styles.thumb}
+        ref={scrollThumbRef}
+        onMouseDown={handleThumbMousedown}
+        onTouchStart={handleThumbTouchdown}
+        style={{
+          width: `${thumbWidth}px`,
+          cursor: isDragging ? "grabbing" : "grab",
+          visibility: visibility.thumbVisible ? "visible" : "hidden",
+        }}
+      ></div>
     </div>
   );
 };
