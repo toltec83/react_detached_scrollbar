@@ -3,11 +3,11 @@ import styles from "./App.module.css";
 import Scrollbar from "./components/Scrollbar";
 
 function App() {
-  
   /*****************************************************/
 
   const contentRef = useRef<HTMLDivElement>(null);
   const [blockNum, setBlockNum] = useState({ v: 2, h: 3 });
+  let scrollDirection = "horizontal";
 
   const addBlocks = () => {
     const contentBlocks = [];
@@ -26,6 +26,7 @@ function App() {
         </div>
       );
     }
+    //if(contentRef.current) console.log(contentRef.current.offsetWidth);
     return contentBlocks;
   };
 
@@ -35,51 +36,63 @@ function App() {
         <div ref={contentRef} className={styles.content}>
           {addBlocks()}
         </div>
+        {scrollDirection === "vertical" ? (
+          <div className={[styles.buttons, styles.buttons_v].join(" ")}>
+            <button
+              onClick={() => {
+                setBlockNum({
+                  ...blockNum,
+                  v: blockNum.v > 0 ? blockNum.v - 1 : 0,
+                });
+              }}
+            >
+              -
+            </button>
+            <button
+              onClick={() => {
+                setBlockNum({ ...blockNum, v: blockNum.v + 1 });
+              }}
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
 
-        <div className={[styles.buttons, styles.buttons_v].join(" ")}>
-          <button
-            onClick={() => {
-              setBlockNum({
-                ...blockNum,
-                v: blockNum.v > 0 ? blockNum.v - 1 : 0,
-              });
-            }}
-          >
-            -
-          </button>
-          <button
-            onClick={() => {
-              setBlockNum({ ...blockNum, v: blockNum.v + 1 });
-            }}
-          >
-            +
-          </button>
-        </div>
-
-        <div className={[styles.buttons, styles.buttons_h].join(" ")}>
-          <button
-            onClick={() => {
-              setBlockNum({
-                ...blockNum,
-                h: blockNum.h > 0 ? blockNum.h - 1 : 0,
-              });
-            }}
-          >
-            -
-          </button>
-          <button
-            onClick={() => {
-              setBlockNum({ ...blockNum, h: blockNum.h + 1 });
-            }}
-          >
-            +
-          </button>
-        </div>
+        {scrollDirection === "horizontal" ? (
+          <div className={[styles.buttons, styles.buttons_h].join(" ")}>
+            <button
+              onClick={() => {
+                setBlockNum({
+                  ...blockNum,
+                  h: blockNum.h > 0 ? blockNum.h - 1 : 0,
+                });
+              }}
+            >
+              -
+            </button>
+            <button
+              onClick={() => {
+                setBlockNum({ ...blockNum, h: blockNum.h + 1 });
+              }}
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
 
       <Scrollbar
         contentRef={contentRef}
-        options={{ direction: "horizontal", isDraggable: false }}
+        options={{
+          direction: scrollDirection,
+          isDraggable: false,
+          alwaysVisible: true,
+          minThumbWidth:50
+        }}
       />
     </div>
   );
