@@ -20,34 +20,34 @@ interface visibilityState {
 
 type dirProps = {
   [key in "horizontal" | "vertical"]: {
-    clientPos: "clientY" | "clientX";
+    clientXY: "clientY" | "clientX";
     pos: "left" | "top";
-    size:"width" | "height";
-    scrollPos: "scrollLeft" | "scrollTop";
-    scrollSize: "scrollWidth" | "scrollHeight";
-    clientSize: "clientWidth" | "clientHeight";
-    offsetSize: "offsetWidth" | "offsetHeight";
+    size: "width" | "height";
+    scrollXY: "scrollLeft" | "scrollTop";
+    scrollWH: "scrollWidth" | "scrollHeight";
+    clientWH: "clientWidth" | "clientHeight";
+    offsetWH: "offsetWidth" | "offsetHeight";
   };
 };
 
 const dirProps: dirProps = {
   horizontal: {
-    clientPos: "clientX",
+    clientXY: "clientX",
     pos: "left",
     size: "width",
-    scrollPos: "scrollLeft",
-    scrollSize: "scrollWidth",
-    clientSize:"clientWidth",
-    offsetSize:"offsetWidth"
+    scrollXY: "scrollLeft",
+    scrollWH: "scrollWidth",
+    clientWH: "clientWidth",
+    offsetWH: "offsetWidth",
   },
   vertical: {
-    clientPos: "clientY",
+    clientXY: "clientY",
     pos: "top",
-    size:"height",
-    scrollPos: "scrollTop",
-    scrollSize: "scrollHeight",
-    clientSize:"clientHeight",
-    offsetSize:"offsetHeight"
+    size: "height",
+    scrollXY: "scrollTop",
+    scrollWH: "scrollHeight",
+    clientWH: "clientHeight",
+    offsetWH: "offsetHeight",
   },
 };
 
@@ -84,10 +84,11 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
     alwaysVisible = false,
   } = props.options;
 
-  const { pos, size, clientPos, scrollPos, scrollSize, clientSize, offsetSize } =
+  const { pos, size, clientXY, scrollXY, scrollWH, clientWH, offsetWH } =
     dirProps[direction];
 
   const [thumbSize, setThumbSize] = useState(minThumbSize);
+  const [realThumbSize, setRealThumbSize] = useState(minThumbSize);
   const [scrollStartPosition, setScrollStartPosition] = useState(0);
 
   const [visibility, setVisibility] = useReducer(handleVisibility, {
@@ -103,10 +104,12 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
 
   const positionThumb = () => {
     if (props.contentRef.current && scrollTrackRef.current) {
-      const { [scrollPos]: contentPos, [scrollSize]: contentSize } =
+      const { [scrollXY]: contentPos, [scrollWH]: contentSize } =
         props.contentRef.current;
-      const { [clientSize]: trackSize } = scrollTrackRef.current;
-      let thumbPos = (+contentPos / +contentSize) * trackSize;
+      const { [clientWH]: trackSize } = scrollTrackRef.current;
+      let thumbPos =
+        (+contentPos / +contentSize) *
+        (trackSize - (thumbSize - realThumbSize));
       thumbPos = Math.min(thumbPos, trackSize - thumbSize);
       scrollThumbRef.current!.style[pos] = `${thumbPos}px`;
     }
@@ -114,9 +117,10 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
 
   function handleResize() {
     if (props.contentRef.current && scrollTrackRef.current) {
-      positionThumb();
-      const { [clientSize]:clientS, [scrollSize]:scrollS } = props.contentRef.current;
-      const { [clientSize]: trackSize } = scrollTrackRef.current;
+      if (!isContentDragging){console.log("pos thu"); positionThumb();}
+      const { [clientWH]: clientS, [scrollWH]: scrollS } =
+        props.contentRef.current;
+      const { [clientWH]: trackSize } = scrollTrackRef.current;
       if (!alwaysVisible && clientS >= scrollS) {
         setVisibility("SCROLLBAR_HIDDEN");
       } else if (alwaysVisible && clientS >= scrollS) {
@@ -124,9 +128,8 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
       } else {
         setVisibility("SCROLLBAR_VISIBLE");
       }
-      setThumbSize(
-        Math.max((clientS / scrollS) * trackSize, minThumbSize)
-      );
+      setThumbSize(Math.max((clientS / scrollS) * trackSize, minThumbSize));
+      setRealThumbSize((clientS / scrollS) * trackSize);
     }
   }
 
@@ -158,15 +161,13 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
       const { current: trackCurrent } = scrollTrackRef;
       const { current: contentCurrent } = props.contentRef;
       if (trackCurrent && contentCurrent) {
-        const clientPosition = e[clientPos];
+        const clientXYition = e[clientXY];
         const target = e.target as HTMLDivElement;
         const trackPos = target.getBoundingClientRect()[pos];
         const thumbOffset = -(thumbSize / 2);
         const clickRatio =
-          (clientPosition - trackPos + thumbOffset) / trackCurrent[clientSize];
-        const scrollAmount = Math.floor(
-          clickRatio * contentCurrent[scrollSize]
-        );
+          (clientXYition - trackPos + thumbOffset) / trackCurrent[clientWH];
+        const scrollAmount = Math.floor(clickRatio * contentCurrent[scrollWH]);
         contentCurrent.scrollTo({
           [pos]: scrollAmount,
           behavior: "smooth",
@@ -179,9 +180,9 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
   const handleContentMove = useCallback(
     (e: any) => {
       if (isContentDragging) {
-        const delta = (e[clientPos] ?? e.touches[0][clientPos]) - prevPos;
-        props.contentRef.current[scrollPos] -= delta;
-        setPrevPos(e[clientPos] ?? e.touches[0][clientPos]);
+        const delta = (e[clientXY] ?? e.touches[0][clientXY]) - prevPos;
+        props.contentRef.current[scrollXY] -= delta;
+        setPrevPos(e[clientXY] ?? e.touches[0][clientXY]);
       }
     },
     [isContentDragging, prevPos]
@@ -189,7 +190,7 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
 
   const handleContentBegin = useCallback((e: any) => {
     setIsContentDragging(true);
-    setPrevPos(e[clientPos] ?? e.touches[0][clientPos]);
+    setPrevPos(e[clientXY] ?? e.touches[0][clientXY]);
   }, []);
 
   const handleContentEnd = useCallback(
@@ -202,8 +203,8 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
   );
 
   const handleThumbBegin = useCallback((e: any) => {
-    setScrollStartPosition(e[clientPos] ?? e.touches[0][clientPos]);
-    setInitialScrollPos(props.contentRef.current![scrollPos]);
+    setScrollStartPosition(e[clientXY] ?? e.touches[0][clientXY]);
+    setInitialScrollPos(props.contentRef.current![scrollXY]);
     setIsDragging(true);
   }, []);
 
@@ -219,18 +220,16 @@ const Scrollbar: React.FC<ScrollbarProps> = (props: ScrollbarProps) => {
   const handleThumbMove = useCallback(
     (e: any) => {
       if (isDragging) {
-        const {
-          [scrollSize]: contentScrollSize,
-          [offsetSize]: contentOffsetSize,
-        } = props.contentRef.current;
+        const { [scrollWH]: contentScrollSize, [offsetWH]: contentOffsetSize } =
+          props.contentRef.current;
         const deltaX =
-          ((e[clientPos] ?? e.touches[0][clientPos]) - scrollStartPosition) *
-          (contentOffsetSize / thumbSize);
+          ((e[clientXY] ?? e.touches[0][clientXY]) - scrollStartPosition) *
+          (contentOffsetSize / realThumbSize);
         const newScrollPos = Math.min(
           initialScrollPos + deltaX,
           contentScrollSize - contentOffsetSize
         );
-        props.contentRef.current[scrollPos] = newScrollPos;
+        props.contentRef.current[scrollXY] = newScrollPos;
       }
     },
     [isDragging, scrollStartPosition, thumbSize]
