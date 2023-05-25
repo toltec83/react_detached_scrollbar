@@ -1,6 +1,4 @@
-
-
-.scrollbar {
+.scrollbar.horizontal {
   width: 90%;
   border: solid 1px #756e8e;
   border-radius: 4px;
@@ -10,7 +8,7 @@
   margin: auto;
 }
 
-.track {
+.scrollbar.horizontal .track {
   left: 0;
   cursor: pointer;
   position: absolute;
@@ -19,9 +17,35 @@
   width: 100%;
 }
 
-.thumb {
+.scrollbar.horizontal .thumb {
   position: absolute;
   height: 100%;
   background: #756e8e;
 }
 
+.scrollbar.vertical {
+  position: absolute;
+  height: 100%;
+  border: solid 1px #756e8e;
+  border-radius: 4px;
+  background-color: #fff;
+  position: relative;
+  width: 20px;
+  right: -100px;
+  top:0px;
+}
+
+.scrollbar.vertical .track {
+  top: 0;
+  cursor: pointer;
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.scrollbar.vertical .thumb {
+  position: absolute;
+  width: 100%;
+  background: #756e8e;
+}
