@@ -2,6 +2,7 @@
   width: 60%;
   margin: 50px auto;
   position: relative;
+  max-width: 400px;
 }
 
 .content_outer {
