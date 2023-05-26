@@ -1,38 +1,40 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import styles from "./App.module.css";
 import Scrollbar from "./components/Scrollbar";
 
 function App() {
-  /*****************************************************/
+
 
   const contentRef = useRef<HTMLDivElement>(null);
-  const [blockNum, setBlockNum] = useState({ v: 2, h: 3 });
+  const [blockNum, setBlockNum] = useState({ v: 1, h: 2 });
 
-  const addBlocks = () => {
-    const contentBlocks = [];
+  const blockColors = ["DarkCyan", "DarkOliveGreen"];
+
+  const contentBlocks = () => {
+    const blocks = [];
     for (let i = 0; i < blockNum.h; i++) {
       const rowBlocks = [];
       for (let j = 0; j < blockNum.v; j++) {
         rowBlocks.push(
           <div key={"block" + j} className={styles.block}>
-            <div className={styles.block_face}></div>
+            <div className={styles.block_face} style={{backgroundColor:blockColors[j%2]}}></div>
           </div>
         );
       }
-      contentBlocks.push(
+      blocks.push(
         <div key={"column" + i} className={styles.column}>
           {rowBlocks}
         </div>
       );
     }
-    return contentBlocks;
+    return blocks;
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.content_outer}>
         <div ref={contentRef} className={styles.content}>
-          {addBlocks()}
+          {contentBlocks()}
         </div>
 
         <div className={[styles.buttons, styles.buttons_v].join(" ")}>
@@ -90,9 +92,9 @@ function App() {
         contentRef={contentRef}
         options={{
           direction: "vertical",
-          isContentDraggable: false,
+          isContentDraggable: true,
           alwaysVisible: true,
-          minThumbSize: 50,
+          minThumbSize: 40,
         }}
       />
     </div>

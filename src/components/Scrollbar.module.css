@@ -1,52 +1,46 @@
-.scrollbar.horizontal {
-  width: 90%;
-  border: solid 1px #756e8e;
-  border-radius: 4px;
+.scrollbar {
+  
+  border: solid 1px Gray;
+  border-radius: 5px;
   background-color: #fff;
   position: absolute;
-  bottom:-50px;
-  height: 20px;
-  margin: auto;
-  left:5%;
-}
-
-.scrollbar.horizontal .track {
-  left: 0;
-  cursor: pointer;
-  position: absolute;
-  right: 0;
-  height: 100%;
-  width: 100%;
-}
-
-.scrollbar.horizontal .thumb {
-  position: absolute;
-  height: 100%;
-  background: #756e8e;
-}
-
-.scrollbar.vertical {
-  position: absolute;
-  height: 90%;
-  border: solid 1px #756e8e;
-  border-radius: 4px;
-  background-color: #fff;
-  width: 20px;
-  right: -50px;
-  top:5%;
 }
 
 .scrollbar.vertical .track {
-  top: 0;
   cursor: pointer;
   position: absolute;
-  bottom: 0;
   height: 100%;
   width: 100%;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.scrollbar .thumb {
+  position: absolute;
+  background: Gray;
+}
+
+
+.scrollbar.horizontal {
+  bottom:-50px;
+  height: 10px;
+  left:5%;
+  width: 90%;
+}
+
+.scrollbar.horizontal .thumb {
+  height: 100%;
+}
+
+.scrollbar.vertical {
+  width: 10px;
+  right: -50px;
+  top:5%;
+  height: 90%;
 }
 
 .scrollbar.vertical .thumb {
-  position: absolute;
   width: 100%;
-  background: #756e8e;
 }

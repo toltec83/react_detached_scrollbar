@@ -16,25 +16,32 @@
   width: 100%;
   height: 250px;
   display: flex;
-  overflow:hidden;
+  /******* overflow auto and other scrollbar hiding tweaks vs overflow hidden leave the mouse scroll / mobile drag functionality on ********/
+  overflow: auto;
+  scrollbar-width: none;
 }
 
+.content::-webkit-scrollbar {
+  display: none;
+}
 
 .buttons {
   position: absolute;
   padding: 5px;
 }
 
-.buttons_v button{
+.buttons_v button {
   display: block;
 }
 
 .buttons_h {
-  left:0px; bottom:0px;
+  left: 0px;
+  bottom: 0px;
 }
 
 .buttons_v {
-  right:0px; top:0px;
+  right: 0px;
+  top: 0px;
 }
 
 button {
@@ -43,7 +50,6 @@ button {
   width: 30px;
   margin: 2px;
 }
-
 
 .column {
   min-width: 25%;
@@ -62,5 +68,4 @@ button {
   height: 80%;
   left: 10%;
   top: 10%;
-  background-color:cadetblue;
 }
